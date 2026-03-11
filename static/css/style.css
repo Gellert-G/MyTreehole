@@ -1,0 +1,63 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.post-card {
+    transition: transform 0.2s;
+}
+
+.post-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.anonymous-name {
+    font-weight: 500;
+    color: #495057;
+}
+
+.like-btn.active,
+.favorite-btn.active {
+    color: #fff;
+}
+
+.like-btn.active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.favorite-btn.active {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+.like-icon,
+.favorite-icon {
+    font-size: 1.2rem;
+}
+
+.comment-item {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-group .btn {
+    border-radius: 20px;
+    padding: 5px 15px;
+}
+
+.alert {
+    border-radius: 10px;
+}

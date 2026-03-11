@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <h2>搜索结果</h2>
+        <p class="text-muted">关键词: "{{ q }}"</p>
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary mb-3">返回首页</a>
+        
+        {% if posts and posts.items %}
+        {% for post in posts.items %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <span class="anonymous-name">{{ post.anonymous_name }}</span>
+                    </h6>
+                    <small class="text-muted">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                </div>
+                <p class="card-text">{{ post.content }}</p>
+                <div class="text-muted">
+                    <span>♥ {{ post.likes }}</span>
+                    <span class="ms-2">★ {{ post.favorites }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if posts.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if posts.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('main.search', q=q, page=posts.prev_num) }}">上一页</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in posts.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num == posts.page %}
+                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('main.search', q=q, page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if posts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('main.search', q=q, page=posts.next_num) }}">下一页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            没有找到匹配的言论
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

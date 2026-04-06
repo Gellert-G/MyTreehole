@@ -32,8 +32,28 @@ def index():
         page=page, per_page=10, error_out=False)
     
     for post in posts.items:
-        if not hasattr(post, 'anonymous_name'):
-            post.anonymous_name = generate_anonymous_name(post.id)
+        # 发帖用户固定显示为"洞主"
+        post.anonymous_name = "洞主"
+        
+        # 获取所有评论，按时间顺序排序（最早的评论在前）
+        comments = Comment.query.filter_by(post_id=post.id).order_by(Comment.created_at.asc()).all()
+        
+        # 为每个用户分配固定的匿名昵称
+        user_nicknames = {}
+        # 首先添加发帖用户
+        user_nicknames[post.user_id] = "洞主"
+        
+        # 为评论用户分配昵称，从"A"开始
+        next_letter = ord('A')
+        for comment in comments:
+            if comment.user_id not in user_nicknames:
+                user_nicknames[comment.user_id] = chr(next_letter)
+                next_letter += 1
+            # 为评论设置匿名昵称
+            comment.anonymous_name = user_nicknames[comment.user_id]
+        
+        # 由于post.comments是一个动态查询对象，我们需要将评论列表存储在一个新的属性中
+        post.comment_list = comments
     
     return render_template('index.html', title='我的树洞', form=form, posts=posts, search_form=search_form)
 
@@ -81,13 +101,50 @@ def favorite_post(post_id):
 @bp.route('/post/<int:post_id>/comment', methods=['POST'])
 @login_required
 def comment_post(post_id):
-    form = CommentForm()
-    if form.validate_on_submit():
-        comment = Comment(content=form.content.data, user_id=current_user.id, post_id=post_id)
+    content = request.form.get('content')
+    if content:
+        comment = Comment(content=content, user_id=current_user.id, post_id=post_id)
         db.session.add(comment)
         db.session.commit()
-        flash('评论成功！')
-    return redirect(url_for('main.index'))
+        
+        # 为新评论生成匿名昵称
+        post = Post.query.get_or_404(post_id)
+        # 获取所有评论，按时间顺序排序（最早的评论在前）
+        comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.created_at.asc()).all()
+        # 为每个用户分配固定的匿名昵称
+        user_nicknames = {}
+        # 首先添加发帖用户
+        user_nicknames[post.user_id] = "洞主"
+        # 为评论用户分配昵称，从"A"开始
+        next_letter = ord('A')
+        for c in comments:
+            if c.user_id not in user_nicknames:
+                user_nicknames[c.user_id] = chr(next_letter)
+                next_letter += 1
+        
+        # 构造评论响应数据
+        comment_data = {
+            'id': comment.id,
+            'content': comment.content,
+            'anonymous_name': user_nicknames[comment.user_id],
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M')
+        }
+        
+        # 检查请求是否来自AJAX
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({'success': True, 'comment': comment_data})
+        else:
+            # 对于非AJAX请求，重定向回原页面
+            flash('评论成功！')
+            return redirect(request.referrer or url_for('main.index'))
+    
+    # 检查请求是否来自AJAX
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return jsonify({'success': False, 'message': '评论内容不能为空'})
+    else:
+        # 对于非AJAX请求，重定向回原页面
+        flash('评论内容不能为空')
+        return redirect(request.referrer or url_for('main.index'))
 
 
 @bp.route('/post/<int:post_id>/delete', methods=['POST'])
@@ -117,7 +174,101 @@ def search():
         posts = None
     
     for post in posts.items if posts else []:
-        if not hasattr(post, 'anonymous_name'):
-            post.anonymous_name = generate_anonymous_name(post.id)
+        # 发帖用户固定显示为"洞主"
+        post.anonymous_name = "洞主"
+        
+        # 获取所有评论，按时间顺序排序（最早的评论在前）
+        comments = Comment.query.filter_by(post_id=post.id).order_by(Comment.created_at.asc()).all()
+        
+        # 为每个用户分配固定的匿名昵称
+        user_nicknames = {}
+        # 首先添加发帖用户
+        user_nicknames[post.user_id] = "洞主"
+        
+        # 为评论用户分配昵称，从"A"开始
+        next_letter = ord('A')
+        for comment in comments:
+            if comment.user_id not in user_nicknames:
+                user_nicknames[comment.user_id] = chr(next_letter)
+                next_letter += 1
+            # 为评论设置匿名昵称
+            comment.anonymous_name = user_nicknames[comment.user_id]
+        
+        # 由于post.comments是一个动态查询对象，我们需要将评论列表存储在一个新的属性中
+        post.comment_list = comments
     
     return render_template('search.html', title='搜索结果', search_form=search_form, posts=posts, q=q)
+
+
+@bp.route('/post/<int:post_id>')
+def view_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    # 发帖用户固定显示为"洞主"
+    post.anonymous_name = "洞主"
+    
+    form = PostForm()
+    search_form = SearchForm()
+    comment_form = CommentForm()
+    
+    # 获取所有评论，按时间顺序排序（最早的评论在前）
+    comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.created_at.asc()).all()
+    
+    # 为每个用户分配固定的匿名昵称
+    user_nicknames = {}
+    # 首先添加发帖用户
+    user_nicknames[post.user_id] = "洞主"
+    
+    # 为评论用户分配昵称，从"A"开始
+    next_letter = ord('A')
+    for comment in comments:
+        if comment.user_id not in user_nicknames:
+            user_nicknames[comment.user_id] = chr(next_letter)
+            next_letter += 1
+        # 为评论设置匿名昵称
+        comment.anonymous_name = user_nicknames[comment.user_id]
+    
+    # 重新按时间顺序排序（最新的评论在前）
+    comments.reverse()
+    
+    return render_template('post.html', title='言论详情', post=post, form=form, 
+                          search_form=search_form, comment_form=comment_form, comments=comments)
+
+
+@bp.route('/post/<int:post_id>/comments')
+def get_comments(post_id):
+    # 获取排序方式，默认逆序
+    sort = request.args.get('sort', 'desc')
+    
+    post = Post.query.get_or_404(post_id)
+    
+    # 获取所有评论，按时间顺序排序
+    if sort == 'asc':
+        comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.created_at.asc()).all()
+    else:
+        comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.created_at.desc()).all()
+    
+    # 为每个用户分配固定的匿名昵称
+    user_nicknames = {}
+    # 首先添加发帖用户
+    user_nicknames[post.user_id] = "洞主"
+    
+    # 为评论用户分配昵称，从"A"开始
+    next_letter = ord('A')
+    # 按时间顺序遍历评论，确保昵称分配一致
+    all_comments = Comment.query.filter_by(post_id=post_id).order_by(Comment.created_at.asc()).all()
+    for comment in all_comments:
+        if comment.user_id not in user_nicknames:
+            user_nicknames[comment.user_id] = chr(next_letter)
+            next_letter += 1
+    
+    # 构造评论响应数据
+    comments_data = []
+    for comment in comments:
+        comments_data.append({
+            'id': comment.id,
+            'content': comment.content,
+            'anonymous_name': user_nicknames[comment.user_id],
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M')
+        })
+    
+    return jsonify({'comments': comments_data})

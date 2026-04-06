@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <span class="anonymous-name">{{ post.anonymous_name }}</span>
+                    </h6>
+                    <small class="text-muted">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                </div>
+                <p class="card-text">{{ post.content }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <button class="like-btn btn btn-link text-muted" data-post-id="{{ post.id }}">
+                            {% if current_user.is_authenticated and post.is_liked_by(current_user) %}
+                            <i class="bi bi-heart-fill text-danger"></i>
+                            {% else %}
+                            <i class="bi bi-heart"></i>
+                            {% endif %}
+                            <span class="likes-count">{{ post.likes }}</span>
+                        </button>
+                        <button class="favorite-btn btn btn-link text-muted" data-post-id="{{ post.id }}">
+                            {% if current_user.is_authenticated and post.is_favorited_by(current_user) %}
+                            <i class="bi bi-star-fill text-warning"></i>
+                            {% else %}
+                            <i class="bi bi-star"></i>
+                            {% endif %}
+                            <span class="favorites-count">{{ post.favorites }}</span>
+                        </button>
+                    </div>
+                    {% if current_user.is_authenticated and post.user_id == current_user.id %}
+                    <form method="POST" action="{{ url_for('main.delete_post', post_id=post.id) }}" class="delete-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">删除</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 评论部分 -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>评论 (<span id="comments-count">{{ comments|length }}</span>)</h4>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    排序：<span id="current-sort">最新</span>
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                    <li><a class="dropdown-item" href="#" data-sort="desc">最新</a></li>
+                    <li><a class="dropdown-item" href="#" data-sort="asc">最早</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if current_user.is_authenticated %}
+        <form id="comment-form" class="mb-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="comment-content">评论内容</label>
+                <textarea id="comment-content" name="content" class="form-control" rows="3" maxlength="200" placeholder="添加评论..."></textarea>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted"><span id="comment-length">0</span>/200</small>
+                <button type="submit" class="btn btn-primary" id="submit-comment">发表评论</button>
+            </div>
+            <div id="comment-status" class="mt-2 text-muted"></div>
+        </form>
+        {% endif %}
+
+        <div id="comments-container">
+            {% if comments %}
+            {% for comment in comments %}
+            <div class="card mb-2 comment-item" data-comment-id="{{ comment.id }}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <span class="anonymous-name">{{ comment.anonymous_name }}</span>
+                        </h6>
+                        <small class="text-muted">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                    <p class="card-text">{{ comment.content }}</p>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="alert alert-info" id="no-comments">
+                暂无评论
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 点赞功能
+document.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const postId = this.getAttribute('data-post-id');
+        fetch(`/post/${postId}/like`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const likeIcon = this.querySelector('i');
+            const likesCount = this.querySelector('.likes-count');
+            if (data.liked) {
+                likeIcon.classList.remove('bi-heart');
+                likeIcon.classList.add('bi-heart-fill', 'text-danger');
+            } else {
+                likeIcon.classList.remove('bi-heart-fill', 'text-danger');
+                likeIcon.classList.add('bi-heart');
+            }
+            likesCount.textContent = data.likes_count;
+        });
+    });
+});
+
+// 收藏功能
+document.querySelectorAll('.favorite-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const postId = this.getAttribute('data-post-id');
+        fetch(`/post/${postId}/favorite`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const favoriteIcon = this.querySelector('i');
+            const favoritesCount = this.querySelector('.favorites-count');
+            if (data.favorited) {
+                favoriteIcon.classList.remove('bi-star');
+                favoriteIcon.classList.add('bi-star-fill', 'text-warning');
+            } else {
+                favoriteIcon.classList.remove('bi-star-fill', 'text-warning');
+                favoriteIcon.classList.add('bi-star');
+            }
+            favoritesCount.textContent = data.favorites_count;
+        });
+    });
+});
+
+// 删除功能
+document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (confirm('确定要删除这条言论吗？')) {
+            this.submit();
+        }
+    });
+});
+
+// 评论内容长度计数
+const commentContent = document.getElementById('comment-content');
+const commentLength = document.getElementById('comment-length');
+if (commentContent) {
+    commentContent.addEventListener('input', function() {
+        commentLength.textContent = this.value.length;
+    });
+}
+
+// 评论排序功能
+const sortItems = document.querySelectorAll('.dropdown-item[data-sort]');
+const currentSort = document.getElementById('current-sort');
+const commentsContainer = document.getElementById('comments-container');
+const postId = {{ post.id }};
+
+if (sortItems.length > 0) {
+    sortItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sort = this.getAttribute('data-sort');
+            
+            // 更新排序显示
+            currentSort.textContent = sort === 'desc' ? '最新' : '最早';
+            
+            // 显示加载动画
+            commentsContainer.innerHTML = '<div class="text-center py-4"><div class="spinner-border" role="status"><span class="sr-only">加载中...</span></div></div>';
+            
+            // 获取评论
+            fetch(`/post/${postId}/comments?sort=${sort}`)
+                .then(response => response.json())
+                .then(data => {
+                    // 更新评论列表
+                    updateCommentsList(data.comments);
+                });
+        });
+    });
+}
+
+// 评论提交功能
+const commentForm = document.getElementById('comment-form');
+const commentStatus = document.getElementById('comment-status');
+const submitCommentBtn = document.getElementById('submit-comment');
+const commentContent = document.getElementById('comment-content');
+const commentLength = document.getElementById('comment-length');
+
+if (commentForm && commentContent && commentStatus && submitCommentBtn) {
+    commentForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const content = commentContent.value.trim();
+        if (!content) {
+            commentStatus.textContent = '评论内容不能为空';
+            commentStatus.classList.add('text-danger');
+            return;
+        }
+        
+        // 禁用提交按钮
+        submitCommentBtn.disabled = true;
+        submitCommentBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 提交中...';
+        commentStatus.textContent = '提交中...';
+        commentStatus.classList.remove('text-danger', 'text-success');
+        
+        // 提交评论
+        fetch(`/post/${postId}/comment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: `content=${encodeURIComponent(content)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 清空评论输入框
+                commentContent.value = '';
+                if (commentLength) {
+                    commentLength.textContent = '0';
+                }
+                
+                // 显示成功消息
+                commentStatus.textContent = '评论成功！';
+                commentStatus.classList.add('text-success');
+                
+                // 重新获取评论列表
+                const sort = currentSort.textContent === '最新' ? 'desc' : 'asc';
+                fetch(`/post/${postId}/comments?sort=${sort}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // 更新评论列表
+                        updateCommentsList(data.comments);
+                        
+                        // 滚动到最新评论
+                        setTimeout(() => {
+                            const newComment = document.querySelector('.comment-item:first-child');
+                            if (newComment) {
+                                newComment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        }, 100);
+                    });
+            } else {
+                // 显示错误消息
+                commentStatus.textContent = data.message || '评论失败，请重试';
+                commentStatus.classList.add('text-danger');
+            }
+        })
+        .catch(error => {
+            // 显示错误消息
+            commentStatus.textContent = '评论失败，请重试';
+            commentStatus.classList.add('text-danger');
+        })
+        .finally(() => {
+            // 启用提交按钮
+            submitCommentBtn.disabled = false;
+            submitCommentBtn.innerHTML = '发表评论';
+        });
+    });
+}
+
+// 更新评论列表
+function updateCommentsList(comments) {
+    const commentsContainer = document.getElementById('comments-container');
+    const commentsCount = document.getElementById('comments-count');
+    const noComments = document.getElementById('no-comments');
+    
+    // 更新评论计数
+    commentsCount.textContent = comments.length;
+    
+    if (comments.length === 0) {
+        commentsContainer.innerHTML = '<div class="alert alert-info" id="no-comments">暂无评论</div>';
+    } else {
+        let commentsHtml = '';
+        comments.forEach(comment => {
+            commentsHtml += `
+            <div class="card mb-2 comment-item" data-comment-id="${comment.id}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <span class="anonymous-name">${comment.anonymous_name}</span>
+                        </h6>
+                        <small class="text-muted">${comment.created_at}</small>
+                    </div>
+                    <p class="card-text">${comment.content}</p>
+                </div>
+            </div>
+            `;
+        });
+        commentsContainer.innerHTML = commentsHtml;
+        
+        // 添加淡入动画
+        const commentItems = document.querySelectorAll('.comment-item');
+        commentItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(10px)';
+            item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            
+            setTimeout(() => {
+                item.style.opacity = '1';
+                item.style.transform = 'translateY(0)';
+            }, index * 50);
+        });
+    }
+}
+</script>
+{% endblock %}

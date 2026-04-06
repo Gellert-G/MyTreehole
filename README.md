@@ -15,7 +15,7 @@
 ## 技术栈
 
 - 后端：Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF
-- 数据库：SQLite
+- 数据库：MySQL
 - 前端：HTML5, CSS3, JavaScript, Bootstrap 5
 - 交互：AJAX
 
@@ -81,7 +81,34 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. 运行应用
+### 4. 配置MySQL数据库
+
+1. 确保本地MySQL服务已启动
+2. 创建名为 `treehole` 的数据库
+3. 配置数据库连接（二选一）：
+   - **方法一**：使用默认配置（推荐）
+     - 确保 `root` 用户密码为 `123456`
+   - **方法二**：使用环境变量（更安全）
+     - 设置以下环境变量：
+       - `DB_USER`：数据库用户名（默认：root）
+       - `DB_PASSWORD`：数据库密码（默认：123456）
+       - `DB_HOST`：数据库主机（默认：localhost）
+       - `DB_NAME`：数据库名称（默认：treehole）
+       - `SECRET_KEY`：应用密钥（默认：dev-secret-key-change-in-production）
+
+   **Windows设置环境变量示例**：
+   ```cmd
+   setx DB_USER "root"
+   setx DB_PASSWORD "123456"
+   ```
+
+   **Linux/Mac设置环境变量示例**：
+   ```bash
+   export DB_USER="root"
+   export DB_PASSWORD="123456"
+   ```
+
+### 5. 运行应用
 
 ```bash
 python run.py
@@ -172,3 +199,17 @@ python run.py
 ## 许可证
 
 MIT License
+
+## 版本信息
+
+### v0
+- 基础功能版本
+- 实现了用户注册、登录、发表言论、点赞、收藏、评论和搜索等基本功能
+- 使用MySQL数据库存储数据
+
+### v1
+- 增强了评论功能
+- 实现了评论匿名化显示：同一讨论主题内，发帖用户固定显示为"洞主"，评论用户按时间顺序分配固定匿名昵称
+- 添加了评论排序功能：支持正序（最早）和逆序（最新）排列
+- 优化了评论提交交互：使用AJAX实现异步提交，提供发布状态反馈，自动滚动到最新评论
+- 修复了评论显示真实名称的问题

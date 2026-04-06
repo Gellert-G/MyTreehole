@@ -16,16 +16,19 @@
                     </h6>
                     <small class="text-muted">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
                 </div>
-                <p class="card-text">{{ post.content }}</p>
+                <p class="card-text"><a href="{{ url_for('main.view_post', post_id=post.id) }}">{{ post.content }}</a></p>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted">♥ {{ post.likes }}</span>
                         <span class="text-muted ms-2">★ {{ post.favorites }}</span>
                     </div>
-                    <form method="POST" action="{{ url_for('main.delete_post', post_id=post.id) }}" class="delete-form">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">删除</button>
-                    </form>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('main.view_post', post_id=post.id) }}" class="btn btn-outline-primary btn-sm">查看</a>
+                        <form method="POST" action="{{ url_for('main.delete_post', post_id=post.id) }}" class="delete-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">删除</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

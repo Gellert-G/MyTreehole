@@ -59,9 +59,9 @@
                 
                 <div class="comments-section mt-3">
                     <h6>评论</h6>
-                    {% for comment in post.comments %}
+                    {% for comment in post.comment_list %}
                     <div class="comment-item mb-2">
-                        <small class="text-muted">{{ comment.user.username }}</small>
+                        <small class="text-muted">{{ comment.anonymous_name }}</small>
                         <p class="mb-0">{{ comment.content }}</p>
                         <small class="text-muted">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
                     </div>
